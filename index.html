@@ -4,6 +4,24 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
 <title>Vikram AI – Your Personal Wealth Manager</title>
+<script>
+// Real-viewport-height fix: in-app browsers (WhatsApp, Instagram, many Android
+// WebViews) handle vh/dvh units unreliably, especially as the URL bar shows/hides.
+// Measuring window.innerHeight directly and storing it as a CSS variable avoids
+// the layout drift/overlap that causes. Runs immediately (before first paint)
+// and again on resize/orientation change.
+(function(){
+  function setAppHeight(){
+    document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+  }
+  setAppHeight();
+  window.addEventListener('resize', setAppHeight);
+  window.addEventListener('orientationchange', setAppHeight);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', setAppHeight);
+  }
+})();
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -30,8 +48,11 @@ body{min-height:100vh;display:flex;justify-content:center;align-items:flex-start
 .phone{width:390px;min-height:844px;background:var(--white);border-radius:48px;box-shadow:0 40px 120px rgba(0,0,0,.22),0 0 0 10px #1a1a2e,0 0 0 12px #2d2d4e;overflow:hidden;position:relative;display:flex;flex-direction:column;}
 @media (max-width:430px){
   body{padding:0;align-items:stretch;}
+  /* Use a JS-measured height (--app-height) instead of vh/dvh, which render unreliably
+     in in-app browsers like WhatsApp/Instagram and many Android WebViews. Falls back
+     to 100vh if JS hasn't run yet. */
   .phone{width:100vw;min-height:100vh;height:100vh;border-radius:0;box-shadow:none;}
-  .phone{min-height:100dvh;height:100dvh;}
+  .phone{min-height:calc(var(--app-height, 100vh));height:calc(var(--app-height, 100vh));}
 }
 .screen{display:none;flex-direction:column;flex:1;overflow-y:auto;background:var(--white);}
 .screen.active{display:flex;}
@@ -41,7 +62,7 @@ body{min-height:100vh;display:flex;justify-content:center;align-items:flex-start
 /* ── ONBOARDING ── */
 .ob-step{display:none;flex-direction:column;flex:1;}
 .ob-step.active{display:flex;}
-.onboard-hero{background:var(--grad-main);padding:48px 32px 60px;position:relative;overflow:hidden;}
+.onboard-hero{background:var(--grad-main);padding:48px 32px 60px;position:relative;overflow:hidden;flex-shrink:0;min-height:fit-content;}
 .onboard-hero::before{content:'';position:absolute;width:280px;height:280px;border-radius:50%;background:rgba(255,255,255,.07);top:-80px;right:-80px;}
 .onboard-hero::after{content:'';position:absolute;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.05);bottom:-40px;left:-40px;}
 .avatar-ring{width:96px;height:96px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;margin-bottom:24px;position:relative;z-index:1;}
@@ -101,7 +122,7 @@ input[type=range]{width:100%;accent-color:var(--indigo);height:6px;}
 .greet-block .label{font-size:12px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:.06em;}
 .greet-block .name{font-size:20px;font-weight:700;color:var(--text-primary);font-family:var(--font-display);}
 .avatar-btn{width:44px;height:44px;border-radius:50%;background:var(--grad-main);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;box-shadow:var(--shadow-sm);border:none;}
-.wealth-card{background:var(--grad-main);border-radius:var(--radius);padding:24px;color:#fff;position:relative;overflow:hidden;}
+.wealth-card{background:var(--grad-main);border-radius:var(--radius);padding:24px;color:#fff;position:relative;overflow:hidden;flex-shrink:0;min-height:fit-content;}
 .wealth-card::before{content:'';position:absolute;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.07);top:-60px;right:-60px;}
 .wealth-card .wc-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;opacity:.75;margin-bottom:6px;}
 .wealth-card .wc-value{font-family:var(--font-mono);font-size:34px;font-weight:600;letter-spacing:-.02em;margin-bottom:4px;}
@@ -120,7 +141,7 @@ input[type=range]{width:100%;accent-color:var(--indigo);height:6px;}
 .ai-text .ai-badge{font-size:10px;font-weight:700;color:var(--indigo);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
 .ai-text h4{font-size:14px;font-weight:600;color:var(--text-primary);line-height:1.4;margin-bottom:4px;}
 .ai-text p{font-size:12px;color:var(--text-secondary);line-height:1.5;}
-.quick-actions{display:flex;gap:12px;padding:0 24px 8px;overflow-x:auto;}
+.quick-actions{display:flex;gap:12px;padding:0 24px 8px;overflow-x:auto;min-height:84px;flex-shrink:0;}
 .quick-actions::-webkit-scrollbar{display:none;}
 .qa-btn{display:flex;flex-direction:column;align-items:center;gap:8px;background:var(--white);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px 20px;cursor:pointer;flex-shrink:0;transition:all .2s;box-shadow:var(--shadow-sm);}
 .qa-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
@@ -139,7 +160,7 @@ input[type=range]{width:100%;accent-color:var(--indigo);height:6px;}
 
 /* ── AVATAR SCREEN ── */
 #screen-avatar{background:var(--off);}
-.avatar-hero{background:var(--grad-main);padding:28px 24px 36px;position:relative;overflow:hidden;}
+.avatar-hero{background:var(--grad-main);padding:28px 24px 36px;position:relative;overflow:hidden;flex-shrink:0;min-height:fit-content;}
 .avatar-hero::before{content:'';position:absolute;width:250px;height:250px;border-radius:50%;background:rgba(255,255,255,.06);top:-80px;right:-60px;}
 .avatar-center{display:flex;flex-direction:column;align-items:center;}
 .avatar-name{font-family:var(--font-display);font-size:22px;font-weight:700;color:#fff;margin-bottom:4px;}
@@ -171,7 +192,7 @@ input[type=range]{width:100%;accent-color:var(--indigo);height:6px;}
 .analytics-header{background:var(--white);padding:20px 24px;border-bottom:1px solid var(--border);}
 .analytics-header h2{font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--text-primary);}
 .analytics-header p{font-size:13px;color:var(--text-secondary);margin-top:4px;}
-.tab-row{display:flex;background:var(--white);padding:0 24px;border-bottom:1px solid var(--border);overflow-x:auto;}
+.tab-row{display:flex;background:var(--white);padding:0 24px;border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0;min-height:44px;}
 .tab-row::-webkit-scrollbar{display:none;}
 .tab-btn{padding:14px 14px;font-size:12px;font-weight:600;color:var(--text-muted);border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;transition:color .2s,border-color .2s;white-space:nowrap;}
 .tab-btn.active{color:var(--indigo);border-bottom-color:var(--indigo);}
@@ -214,7 +235,7 @@ input[type=range]{width:100%;accent-color:var(--indigo);height:6px;}
 
 /* ── INVEST SCREEN ── */
 #screen-invest{background:var(--off);}
-.invest-cats{display:flex;gap:10px;padding:16px 24px;overflow-x:auto;}
+.invest-cats{display:flex;gap:10px;padding:16px 24px;overflow-x:auto;flex-shrink:0;min-height:50px;}
 .invest-cats::-webkit-scrollbar{display:none;}
 .inv-cat{background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 16px;flex-shrink:0;cursor:pointer;text-align:center;transition:all .2s;min-width:80px;}
 .inv-cat.selected,.inv-cat:hover{background:var(--indigo);border-color:var(--indigo);}
@@ -238,7 +259,7 @@ input[type=range]{width:100%;accent-color:var(--indigo);height:6px;}
 .invest-cta:hover{opacity:.9;}
 
 /* ── AI INVEST SUGGESTIONS ── */
-.ai-invest-banner{margin:0 24px 16px;background:linear-gradient(135deg,#0d0f1c,#1e1b4b);border-radius:var(--radius);padding:20px;color:#fff;position:relative;overflow:hidden;}
+.ai-invest-banner{margin:0 24px 16px;background:linear-gradient(135deg,#0d0f1c,#1e1b4b);border-radius:var(--radius);padding:20px;color:#fff;position:relative;overflow:hidden;flex-shrink:0;min-height:fit-content;}
 .ai-invest-banner::before{content:'';position:absolute;width:120px;height:120px;border-radius:50%;background:rgba(79,70,229,.3);top:-30px;right:-30px;}
 .aib-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--teal);margin-bottom:8px;}
 .aib-title{font-size:16px;font-weight:700;color:#fff;margin-bottom:6px;}
@@ -260,7 +281,7 @@ input[type=range]{width:100%;accent-color:var(--indigo);height:6px;}
 
 /* ── PORTFOLIO TRACKER (post-invest) ── */
 #screen-portfolio{background:var(--off);}
-.portfolio-hero{background:linear-gradient(135deg,#0d0f1c,#1e1b4b);padding:28px 24px 36px;position:relative;overflow:hidden;}
+.portfolio-hero{background:linear-gradient(135deg,#0d0f1c,#1e1b4b);padding:28px 24px 36px;position:relative;overflow:hidden;flex-shrink:0;min-height:fit-content;}
 .portfolio-hero::before{content:'';position:absolute;width:200px;height:200px;border-radius:50%;background:rgba(79,70,229,.2);top:-60px;right:-60px;}
 .ph-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--teal);margin-bottom:6px;}
 .ph-value{font-family:var(--font-mono);font-size:36px;font-weight:700;color:#fff;margin-bottom:4px;}
@@ -361,7 +382,7 @@ input[type=range]{width:100%;accent-color:var(--indigo);height:6px;}
 .vikram-goals-card .vg-body{font-size:12.5px;color:var(--text-secondary);line-height:1.65;}
 
 /* ── SALARY / BUDGET ── */
-.inflation-banner{margin:0 24px 4px;background:linear-gradient(135deg,#1a1a2e 0%,#2d1b69 100%);border-radius:var(--radius);padding:16px 18px;color:#fff;position:relative;overflow:hidden;}
+.inflation-banner{margin:0 24px 4px;background:linear-gradient(135deg,#1a1a2e 0%,#2d1b69 100%);border-radius:var(--radius);padding:16px 18px;color:#fff;position:relative;overflow:hidden;flex-shrink:0;min-height:fit-content;}
 .inflation-banner::before{content:'';position:absolute;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.04);top:-40px;right:-30px;}
 .inflation-banner .inf-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
 .inflation-banner .inf-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;opacity:.7;}
@@ -384,7 +405,7 @@ input[type=range]{width:100%;accent-color:var(--indigo);height:6px;}
 .buy-check-btn:active{transform:translateY(0) scale(.99);}
 @keyframes btnGlow{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}
 .budget-report-card{display:flex;flex-direction:column;gap:14px;}
-.budget-hero{background:var(--grad-main);border-radius:14px;padding:18px;color:#fff;text-align:center;position:relative;overflow:hidden;}
+.budget-hero{background:var(--grad-main);border-radius:14px;padding:18px;color:#fff;text-align:center;position:relative;overflow:hidden;flex-shrink:0;min-height:fit-content;}
 .budget-hero::before{content:'';position:absolute;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.08);top:-50px;right:-50px;}
 .budget-hero .bh-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;opacity:.8;position:relative;z-index:1;}
 .budget-hero .bh-value{font-family:var(--font-mono);font-size:28px;font-weight:700;margin-top:4px;position:relative;z-index:1;}
@@ -485,7 +506,8 @@ input[type=range]{width:100%;accent-color:var(--indigo);height:6px;}
 .msg-divider{width:100%;border:none;border-top:1px solid rgba(255,255,255,.05);margin:4px 0;}
 
 /* INPUT ROW — always visible at bottom */
-.chat-input-wrap{padding:12px 14px 16px;background:#111218;border-top:1px solid rgba(255,255,255,.06);flex-shrink:0;}
+.chat-input-wrap{padding:8px 14px 16px;background:#111218;border-top:1px solid rgba(255,255,255,.06);flex-shrink:0;}
+.chat-input-toprow{display:flex;justify-content:flex-end;margin-bottom:6px;}
 .chat-input-box{background:#1c1f2b;border:1.5px solid rgba(255,255,255,.1);border-radius:20px;padding:14px 16px;display:flex;align-items:center;gap:10px;transition:border-color .2s;}
 .chat-input-box:focus-within{border-color:rgba(249,115,22,.5);}
 .chat-input{flex:1;background:transparent;border:none;font-family:var(--font-body);font-size:13.5px;color:#e2e8f0;outline:none;}
@@ -500,14 +522,18 @@ input[type=range]{width:100%;accent-color:var(--indigo);height:6px;}
 .chat-disclaimer{text-align:center;font-size:10px;color:#374151;margin-top:8px;}
 
 /* Lang selector */
-.lang-wrap{position:relative;}
-.lang-select{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:#9ca3af;border-radius:20px;padding:6px 10px;font-family:var(--font-body);font-size:11px;font-weight:600;cursor:pointer;}
+.lang-wrap{position:relative;flex-shrink:0;}
+.lang-select{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:#9ca3af;border-radius:20px;padding:6px 9px;font-family:var(--font-body);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;}
 .lang-caret{font-size:9px;opacity:.6;}
-.lang-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;background:#1a1d27;border:1px solid rgba(255,255,255,.1);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.7);width:180px;overflow:hidden;z-index:40;}
+.lang-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;background:#1a1d27;border:1px solid rgba(255,255,255,.1);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.7);width:160px;max-width:calc(100vw - 24px);overflow:hidden;z-index:60;}
+.lang-menu.lang-menu-up{top:auto;bottom:calc(100% + 6px);}
 .lang-menu.open{display:block;}
-.lang-opt{padding:11px 14px;font-size:12px;font-weight:500;color:#cbd5e1;cursor:pointer;transition:background .15s;}
+.lang-opt{padding:10px 14px;font-size:12px;font-weight:500;color:#cbd5e1;cursor:pointer;transition:background .15s;}
 .lang-opt:hover{background:rgba(255,255,255,.06);}
 .lang-opt.active{background:rgba(249,115,22,.15);color:#fb923c;font-weight:700;}
+@media (max-width:380px){
+  .lang-select{padding:5px 7px;font-size:10px;}
+}
 
 /* ── NAVBAR ── */
 .navbar{background:var(--white);border-top:1px solid var(--border);display:flex;padding:10px 8px 16px;flex-shrink:0;position:sticky;bottom:0;}
@@ -531,7 +557,7 @@ input[type=range]{width:100%;accent-color:var(--indigo);height:6px;}
 /* MODAL */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;align-items:flex-end;justify-content:center;}
 .modal-overlay.open{display:flex;}
-.modal-sheet{background:var(--white);border-radius:28px 28px 0 0;padding:24px;width:390px;max-width:100%;max-height:80vh;overflow-y:auto;}
+.modal-sheet{background:var(--white);border-radius:28px 28px 0 0;padding:24px;width:390px;max-width:100%;max-height:80vh;max-height:calc(var(--app-height, 100vh) * 0.8);overflow-y:auto;}
 .modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px;}
 .modal-sheet h3{font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--text-primary);margin-bottom:16px;}
 .modal-sheet::-webkit-scrollbar{display:none;}
@@ -551,14 +577,20 @@ input[type=range]{width:100%;accent-color:var(--indigo);height:6px;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
 /* ── CHAT WEB LAYOUT ── */
-.chat-web-header{background:#0d0f18;border-bottom:1px solid rgba(255,255,255,.07);padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
-.chat-web-logo{display:flex;align-items:center;gap:8px;flex:1;}
-.chat-web-logo-text{font-size:14px;font-weight:800;color:#fff;letter-spacing:-.02em;}
-.chat-web-logo-sub{font-size:9px;color:#6b7280;font-weight:500;}
-.chat-web-header-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.chat-web-header{background:#0d0f18;border-bottom:1px solid rgba(255,255,255,.07);padding:8px 10px;display:flex;align-items:center;gap:6px;flex-shrink:0;min-width:0;}
+.chat-web-logo{display:flex;align-items:center;gap:7px;flex:1 1 auto;min-width:0;overflow:hidden;}
+.chat-web-logo svg{flex-shrink:0;}
+.chat-web-logo>div{min-width:0;overflow:hidden;}
+.chat-web-logo-text{font-size:13px;font-weight:800;color:#fff;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chat-web-logo-sub{font-size:9px;color:#6b7280;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chat-web-header-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;}
 .chat-web-newchat{background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:16px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font-body);display:flex;align-items:center;gap:5px;}
-.chat-back-app-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#e2e8f0;border-radius:16px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font-body);display:flex;align-items:center;gap:6px;transition:background .2s;}
+.chat-back-app-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#e2e8f0;border-radius:16px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font-body);display:flex;align-items:center;gap:5px;transition:background .2s;flex-shrink:0;white-space:nowrap;}
 .chat-back-app-btn:hover{background:rgba(255,255,255,.14);}
+@media (max-width:380px){
+  .chat-web-logo-sub{display:none;}
+  .chat-web-header{padding:8px 8px;gap:5px;}
+}
 .chat-web-body{flex:1;display:flex;overflow:hidden;position:relative;}
 .chat-sidebar{position:absolute;left:0;top:0;bottom:0;width:220px;background:#0a0c14;border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;z-index:20;transform:translateX(-100%);transition:transform .25s ease;}
 .chat-sidebar.open{transform:translateX(0);}
@@ -589,10 +621,10 @@ input[type=range]{width:100%;accent-color:var(--indigo);height:6px;}
 .chat-main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .chat-menu-btn{width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.06);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:#9ca3af;flex-shrink:0;}
 .chat-menu-btn:hover{background:rgba(255,255,255,.1);}
-/* Hide speak/audio button */
-.speak-toggle{display:none!important;}
+/* Manual listen/stop button — visible so users can control playback */
+.speak-toggle{display:inline-flex;}
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 </head>
 <body>
 <div class="phone">
@@ -999,15 +1031,6 @@ input[type=range]{width:100%;accent-color:var(--indigo);height:6px;}
         <div><div class="chat-web-logo-text">Vikram AI</div><div class="chat-web-logo-sub">India's Digital Wealth Manager</div></div>
       </div>
       <div class="chat-web-header-actions">
-        <div class="lang-wrap" id="langWrap">
-          <button class="lang-select" id="langBtn" onclick="toggleLangMenu()"><span id="langBtnLabel">🇬🇧 EN</span><span class="lang-caret">▾</span></button>
-          <div class="lang-menu" id="langMenu">
-            <div class="lang-opt active" data-lang="en" onclick="pickLang('en')">🇬🇧 English</div>
-            <div class="lang-opt" data-lang="hi" onclick="pickLang('hi')">🇮🇳 हिंदी</div>
-            <div class="lang-opt" data-lang="or" onclick="pickLang('or')">🇮🇳 ଓଡ଼ିଆ</div>
-            <div class="lang-opt" data-lang="kn" onclick="pickLang('kn')">🇮🇳 ಕನ್ನಡ</div>
-          </div>
-        </div>
         <button class="chat-back-app-btn" onclick="goTo('home')" title="Back to App"><svg width="13" height="13" viewBox="0 0 20 20" fill="none" style="flex-shrink:0"><path d="M12 4l-6 6 6 6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg> App</button>
       </div>
     </div>
@@ -1077,6 +1100,17 @@ input[type=range]{width:100%;accent-color:var(--indigo);height:6px;}
 
         <!-- INPUT -->
         <div class="chat-input-wrap">
+          <div class="chat-input-toprow">
+            <div class="lang-wrap" id="langWrap">
+              <button class="lang-select" id="langBtn" onclick="toggleLangMenu()"><span id="langBtnLabel">🇬🇧 EN</span><span class="lang-caret">▾</span></button>
+              <div class="lang-menu lang-menu-up" id="langMenu">
+                <div class="lang-opt active" data-lang="en" onclick="pickLang('en')">🇬🇧 English</div>
+                <div class="lang-opt" data-lang="hi" onclick="pickLang('hi')">🇮🇳 हिंदी</div>
+                <div class="lang-opt" data-lang="or" onclick="pickLang('or')">🇮🇳 ଓଡ଼ିଆ</div>
+                <div class="lang-opt" data-lang="kn" onclick="pickLang('kn')">🇮🇳 ಕನ್ನಡ</div>
+              </div>
+            </div>
+          </div>
           <div class="chat-input-box">
             <input class="chat-input" id="chatInput" type="text" placeholder="Ask Vikram AI anything…"/>
             <div class="chat-input-icons">
@@ -1178,7 +1212,7 @@ input[type=range]{width:100%;accent-color:var(--indigo);height:6px;}
 
 <!-- INVEST MODAL -->
 <div class="modal-overlay" id="modal-invest">
-  <div class="modal-sheet" style="max-height:88vh;overflow-y:auto;">
+  <div class="modal-sheet" style="max-height:88vh;max-height:calc(var(--app-height, 100vh) * 0.88);overflow-y:auto;">
     <div class="modal-handle"></div>
     <h3 id="invest-modal-title">Investment Analysis</h3>
 
@@ -1356,8 +1390,6 @@ function announceLangSwitch(code) {
   div.innerHTML = `<div class="msg-meta"><div class="msg-av">V</div><span class="msg-sender-name">Vikram AI</span></div><div class="msg-bubble">${text}<button class="speak-toggle" onclick="toggleSpeakBubble(this, this.parentElement)">🔊 Listen</button></div><div class="msg-time">Just now</div>`;
   messages.appendChild(div);
   messages.scrollTop = messages.scrollHeight;
-  const btn = div.querySelector('.speak-toggle');
-  speakVikramReply(text, btn);
 }
 // Close the language menus when tapping anywhere outside them
 document.addEventListener('click', (e) => {
@@ -2633,8 +2665,6 @@ async function sendChat() {
     const formattedReply = formatVikramReply(reply);
     typing.innerHTML = `<div class="msg-meta"><div class="msg-av">V</div><span class="msg-sender-name">Vikram AI · SEBI-RIA</span></div><div class="msg-bubble">${formattedReply}<button class="speak-toggle" onclick="toggleSpeakBubble(this, this.parentElement)">🔊 Listen</button></div><div class="msg-time">Just now</div>`;
     messagesEl.scrollTop = messagesEl.scrollHeight;
-    const newBtn = typing.querySelector('.speak-toggle');
-    speakVikramReply(reply, newBtn);
   } catch (e) {
     typing.innerHTML = `<div class="msg-meta"><div class="msg-av">V</div><span class="msg-sender-name">Vikram AI</span></div><div class="msg-bubble" style="color:#f87171;">Connection error. Please check your network and try again.</div><div class="msg-time">Just now</div>`;
   }
