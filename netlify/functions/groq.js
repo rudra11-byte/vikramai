@@ -1,4 +1,4 @@
-exports.handler = async (event) => {
+exports.handler = async function(event, context) {
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
@@ -12,8 +12,9 @@ exports.handler = async (event) => {
   }
 
   try {
-    const body = JSON.parse(event.body);
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const { messages, max_tokens } = JSON.parse(event.body);
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -21,12 +22,14 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
-        messages: body.messages,
-        max_tokens: body.max_tokens || 1000,
+        messages,
+        max_tokens: max_tokens || 1000,
         temperature: 0.7
       })
     });
-    const data = await res.json();
+
+    const data = await response.json();
+
     return {
       statusCode: 200,
       headers: {
