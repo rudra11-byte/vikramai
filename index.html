@@ -1597,12 +1597,23 @@ async function callGroq(systemPrompt, userContent, maxTokens) {
       ? userContent
       : [{ role: 'user', content: userContent }])
   ];
-  const res = await fetch('/.netlify/functions/groq', {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, max_tokens: maxTokens || 1000 })
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer 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'
+    },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      messages,
+      max_tokens: maxTokens || 1000,
+      temperature: 0.7
+    })
   });
-  if (!res.ok) throw new Error('Function error ' + res.status);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err.error && err.error.message) || 'Groq API error ' + res.status);
+  }
   const data = await res.json();
   return data.choices?.[0]?.message?.content || '';
 }
@@ -3017,14 +3028,21 @@ async function sendChat() {
   chatHistory.push({ role: 'user', content: text });
 
   try {
-    const reply = await callGemini(buildSystemPrompt(), chatHistory, 1200) || 'I had trouble responding. Please try again.';
+    const rawReply = await callGemini(buildSystemPrompt(), chatHistory, 1200);
+    if (!rawReply) {
+      typing.innerHTML = `<div class="msg-meta"><div class="msg-av">V</div><span class="msg-sender-name">Vikram AI</span></div><div class="msg-bubble" style="color:#f87171;">I wasn't able to reach the AI service right now. Please check your connection and try again.</div><div class="msg-time">Just now</div>`;
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      return;
+    }
+    const reply = rawReply;
     chatHistory.push({ role: 'assistant', content: reply });
 
     const formattedReply = formatVikramReply(reply);
     typing.innerHTML = `<div class="msg-meta"><div class="msg-av">V</div><span class="msg-sender-name">Vikram AI · SEBI-RIA</span></div><div class="msg-bubble">${formattedReply}<button class="speak-toggle" onclick="toggleSpeakBubble(this, this.parentElement)">🔊 Listen</button></div><div class="msg-time">Just now</div>`;
     messagesEl.scrollTop = messagesEl.scrollHeight;
   } catch (e) {
-    typing.innerHTML = `<div class="msg-meta"><div class="msg-av">V</div><span class="msg-sender-name">Vikram AI</span></div><div class="msg-bubble" style="color:#f87171;">Connection error. Please check your network and try again.</div><div class="msg-time">Just now</div>`;
+    typing.innerHTML = `<div class="msg-meta"><div class="msg-av">V</div><span class="msg-sender-name">Vikram AI</span></div><div class="msg-bubble" style="color:#f87171;">I wasn't able to reach the AI service right now. Please check your connection and try again.</div><div class="msg-time">Just now</div>`;
+    messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 }
 
@@ -3461,7 +3479,7 @@ async function voiceSendAndSpeak(text) {
   }
 
   try {
-    const reply = await callGemini(buildSystemPrompt(), chatHistory, 1200) || 'I had trouble responding. Please try again.';
+    const reply = await callGemini(buildSystemPrompt(), chatHistory, 1200) || "I wasn't able to reach the AI service right now. Please check your connection and try again.";
     chatHistory.push({ role: 'assistant', content: reply });
 
     if (messagesEl) {
