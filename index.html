@@ -601,10 +601,50 @@ input[type=range]{width:100%;accent-color:var(--indigo);height:6px;}
 
 #screen-voice{position:relative;color:#fff;background:#0a0712;padding:0;overflow:hidden;}
 .voice-photo-layer{position:absolute;inset:0;z-index:1;overflow:hidden;}
-.voice-photo-layer img{position:absolute;top:0;left:50%;transform:translateX(-50%) scale(1.0);width:100%;height:100%;object-fit:cover;object-position:50% 18%;transition:transform 1.4s ease-in-out,filter .5s ease;filter:brightness(.97);}
-.voice-photo-layer.listening img{transform:translateX(-50%) scale(1.03);filter:brightness(1.02);}
-.voice-photo-layer.speaking img{animation:vPhotoTalk 2.6s ease-in-out infinite;}
-@keyframes vPhotoTalk{0%,100%{transform:translateX(-50%) scale(1.0);}50%{transform:translateX(-50%) scale(1.012);}}
+.voice-photo-layer img,.voice-photo-layer video{position:absolute;top:0;left:50%;transform:translateX(-50%) scale(1.0);width:100%;height:100%;object-fit:cover;object-position:50% 18%;transform-origin:50% 75%;filter:brightness(.97);}
+.voice-photo-layer video{display:none;} /* swap-in slot for future real video clips — see VOICE_AVATAR_MEDIA */
+/* Idle: slow continuous breathing loop so the frame never looks frozen */
+.voice-photo-layer.idle img{animation:vPhotoIdle 5.5s ease-in-out infinite;}
+@keyframes vPhotoIdle{
+  0%,100%{transform:translateX(-50%) scale(1.0) rotate(0deg);filter:brightness(.97);}
+  50%{transform:translateX(-50%) scale(1.012) rotate(.15deg);filter:brightness(.99);}
+}
+/* Listening: leans in slightly + brightens, like he's paying attention */
+.voice-photo-layer.listening img{animation:vPhotoListen 2.8s ease-in-out infinite;}
+@keyframes vPhotoListen{
+  0%,100%{transform:translateX(-50%) scale(1.025) rotate(-.3deg);filter:brightness(1.03);}
+  50%{transform:translateX(-50%) scale(1.035) rotate(.3deg);filter:brightness(1.06);}
+}
+/* Hand-area ripple cue during listening — sits roughly where his raised hand is in the
+   reference photo, simulating "I see you, go ahead" attentiveness since the photo itself
+   can't actually move. Purely a visual hint, positioned near the lower-left of frame. */
+.voice-hand-ripple{position:absolute;left:6%;bottom:30%;z-index:2;width:54px;height:54px;border-radius:50%;pointer-events:none;display:none;}
+.voice-photo-layer.listening ~ .voice-hand-ripple,
+#screen-voice.vm-listening .voice-hand-ripple{display:block;}
+.voice-hand-ripple span{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(167,139,250,.55);animation:vHandRipple 1.8s ease-out infinite;}
+.voice-hand-ripple span:nth-child(2){animation-delay:.6s;}
+.voice-hand-ripple span:nth-child(3){animation-delay:1.2s;}
+@keyframes vHandRipple{0%{transform:scale(.4);opacity:.9;}100%{transform:scale(1.6);opacity:0;}}
+/* Speaking: rhythmic talking pulse on the whole frame, timed like a speech cadence
+   (uneven beats, not a smooth sine wave, so it reads more like "talking" than "breathing") */
+.voice-photo-layer.speaking img{animation:vPhotoTalk 1.1s cubic-bezier(.4,0,.2,1) infinite;}
+@keyframes vPhotoTalk{
+  0%{transform:translateX(-50%) scale(1.0);filter:brightness(.99);}
+  18%{transform:translateX(-50%) scale(1.018);filter:brightness(1.04);}
+  36%{transform:translateX(-50%) scale(1.005);filter:brightness(1.0);}
+  55%{transform:translateX(-50%) scale(1.022);filter:brightness(1.05);}
+  72%{transform:translateX(-50%) scale(1.002);filter:brightness(.99);}
+  100%{transform:translateX(-50%) scale(1.0);filter:brightness(.99);}
+}
+/* Soft glow near the mouth area, pulsing with the same speaking cadence — draws the eye
+   to where he's "talking" since we can't move the lips on a static photo. */
+.voice-mouth-glow{position:absolute;left:50%;top:54%;z-index:2;width:90px;height:50px;margin-left:-45px;border-radius:50%;background:radial-gradient(ellipse, rgba(253,186,116,.35) 0%, rgba(253,186,116,0) 70%);pointer-events:none;opacity:0;}
+.voice-photo-layer.speaking ~ .voice-mouth-glow{animation:vMouthGlow 1.1s cubic-bezier(.4,0,.2,1) infinite;}
+@keyframes vMouthGlow{
+  0%,100%{opacity:0;}
+  18%,55%{opacity:.8;}
+  36%,72%{opacity:.2;}
+}
 .voice-photo-vignette{position:absolute;inset:0;z-index:2;background:linear-gradient(to bottom,rgba(8,6,16,.55) 0%,rgba(8,6,16,.05) 22%,rgba(8,6,16,0) 45%,rgba(8,6,16,.55) 70%,rgba(6,4,12,.97) 100%);pointer-events:none;}
 
 .voice-topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 4px;flex-shrink:0;position:relative;z-index:5;}
