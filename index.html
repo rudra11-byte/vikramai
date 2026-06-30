@@ -3221,9 +3221,15 @@ function speakWithBrowserVoice(clean, btn) {
   speechSynthesis.speak(utter);
 }
 
-// Called by the 🔊 Listen button on each Vikram message bubble — plays Vikram's video
+// Called by the 🔊 Listen button on each Vikram message bubble — opens Vikram's video
+// and reads the reply aloud via text-to-speech (the video itself has no audio track).
 function toggleSpeakBubble(btn, bubbleEl) {
   openVikramVideoModal();
+  if ('speechSynthesis' in window) {
+    const raw = bubbleEl ? bubbleEl.innerText.replace(/Listen$|Stop$/, '') : '';
+    const clean = raw.replace(/[*_#`₹]/g, m => m === '₹' ? 'rupees ' : '').replace(/\n+/g, '. ').trim();
+    if (clean) speakWithBrowserVoice(clean, btn);
+  }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -3377,7 +3383,7 @@ function speakInVoiceMode(text) {
     // Show video, hide still photo
     if (img) img.style.display = 'none';
     vid.style.display = 'block';
-    vid.muted = voiceMuted; // respect mute button
+    vid.muted = true; // video has no real audio track — TTS provides the voice
     vid.currentTime = 0;
     vid.play().catch(() => {});
 
@@ -3387,11 +3393,24 @@ function speakInVoiceMode(text) {
     setVoiceTapHint('Tap to interrupt', true);
     setVoiceStatus('Vikram is speaking…', true, 'eq-orange');
 
-    // Video loops — we stop it based on a timer matching the text length
-    // (rough estimate: ~120 words/min for a financial advisor voice)
-    const wordCount = text.trim().split(/\s+/).length;
-    const durationMs = Math.max(4000, Math.min(60000, wordCount * 500));
-    vid._vikramTimer = setTimeout(stopVikramVideo, durationMs);
+    if (voiceMuted || !('speechSynthesis' in window)) {
+      // No audio available — fall back to timer-based animation only
+      const wordCount = text.trim().split(/\s+/).length;
+      const durationMs = Math.max(4000, Math.min(60000, wordCount * 500));
+      vid._vikramTimer = setTimeout(stopVikramVideo, durationMs);
+      return;
+    }
+
+    speechSynthesis.cancel();
+    const { voice, needsPitchCorrection } = findVikramVoice(vikramLang);
+    const clean = text.replace(/[*_#`₹]/g, m => m === '₹' ? 'rupees ' : '').replace(/\n+/g, '. ');
+    const utter = new SpeechSynthesisUtterance(clean);
+    utter.rate = 1;
+    utter.pitch = needsPitchCorrection ? 0.55 : 0.78;
+    if (voice) { utter.voice = voice; utter.lang = voice.lang; }
+    else { utter.lang = VIKRAM_LANGS[vikramLang].voice; }
+    utter.onend = utter.onerror = stopVikramVideo;
+    speechSynthesis.speak(utter);
   } else {
     // Fallback to browser TTS if video not available
     if (voiceMuted || !('speechSynthesis' in window)) {
