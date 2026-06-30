@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
 <title>Vikram AI – Your Personal Wealth Manager</title>
+<link rel="icon" href="data:,"/>
 <script>
 // Real-viewport-height fix: in-app browsers (WhatsApp, Instagram, many Android
 // WebViews) handle vh/dvh units unreliably, especially as the URL bar shows/hides.
@@ -1591,23 +1592,52 @@ function callGemini(systemPrompt, userContent, maxTokens) {
 }
 
 async function callGroq(systemPrompt, userContent, maxTokens) {
+  // Trim history to the most recent exchanges only — long histories burn through
+  // Groq's per-minute token budget fast and trigger 429 rate limits unnecessarily.
+  const trimmedHistory = Array.isArray(userContent)
+    ? userContent.slice(-10)
+    : [{ role: 'user', content: userContent }];
   const messages = [
     { role: 'system', content: systemPrompt },
-    ...(Array.isArray(userContent)
-      ? userContent
-      : [{ role: 'user', content: userContent }])
+    ...trimmedHistory
   ];
-  const res = await fetch('/.netlify/functions/groq', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, max_tokens: maxTokens || 1000 })
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err.error && err.error.message) || 'Function error ' + res.status);
+  const body = JSON.stringify({ messages, max_tokens: maxTokens || 1000 });
+
+  const maxAttempts = 3;
+  let lastError;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await fetch('/.netlify/functions/groq', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const msg = (err.error && err.error.message) || 'Function error ' + res.status;
+        // Retry on rate limit (429) or transient server errors (5xx)
+        if ((res.status === 429 || res.status >= 500) && attempt < maxAttempts) {
+          // 429s need a longer wait — Groq's per-minute window resets on a real timer
+          const delay = res.status === 429 ? attempt * 4000 : attempt * 1200;
+          await new Promise(r => setTimeout(r, delay));
+          lastError = new Error(msg);
+          continue;
+        }
+        throw new Error(msg);
+      }
+      const data = await res.json();
+      return data.choices?.[0]?.message?.content || '';
+    } catch (e) {
+      lastError = e;
+      // Retry on network-level failures too (flaky mobile connections)
+      if (attempt < maxAttempts && (e instanceof TypeError || /fetch|network/i.test(e.message || ''))) {
+        await new Promise(r => setTimeout(r, attempt * 1200));
+        continue;
+      }
+      throw e;
+    }
   }
-  const data = await res.json();
-  return data.choices?.[0]?.message?.content || '';
+  throw lastError;
 }
 
 // Vikram AI avatar portrait (used in Voice Mode) — embedded as base64 so the app stays a single file.
@@ -1778,26 +1808,15 @@ STYLE rules:
 - Responses: 5–8 lines for normal queries, longer structured reports only when asked
 - After giving advice, ask a sharp follow-up question to deepen the engagement
 
-━━━ YOUR KNOWLEDGE BASE ━━━
-You have deeply studied and internalized the following sources, which shape your professional advice:
+━━━ YOUR KNOWLEDGE BASE (apply naturally, don't recite) ━━━
+- 50/30/20 budgeting: 50% needs, 30% wants, 20% savings/investments.
+- Behavioral finance (Housel): wealth = what you don't spend; compounding needs time; avoid catastrophic mistakes; keep a margin of error.
+- Value investing (Graham): margin of safety; SIP removes market-timing need; never lose money.
+- Purchase rules: Car 20/4/10 (20% down, ≤4yr loan, total cost ≤10% income); Home EMI ≤35-40% take-home, price 3-5x annual income, 20-35% down; 30-Day Rule for non-essentials; "buy it twice" test for luxury items.
+- Emergency fund: 3-6 months expenses (6-12 if income unstable), split 30-40% instant-access / 60-70% liquid funds.
+- You're current on repo rate, inflation, LTCG/STCG rules, and NAV/index trends — reference realistic figures, never invented ones.
 
-1. **50/30/20 Rule (ICICI Prudential Life)**: The 50/30/20 budgeting rule divides monthly take-home salary — 50% for Needs (rent, food, EMIs, utilities, insurance, transport), 30% for Wants (dining out, OTT, shopping, travel, hobbies), 20% for Savings & Investments (emergency fund, SIP, PPF, FD, ELSS). For someone earning ₹30,000: Needs ₹15,000, Wants ₹9,000, Savings ₹6,000. Savings plan: Emergency Fund ₹3,000/month until 6 months of expenses is built, Mutual Fund SIP (Index Fund) ₹2,000/month, Skill/Investment Reserve ₹1,000/month. Advice: avoid lifestyle inflation, increase SIP with every salary hike, avoid high-interest EMIs, aim for 25–30% savings rate once income crosses ₹50,000/month.
-
-2. **The Psychology of Money (Morgan Housel)**: Wealth is built not by the highest income or smartest investing, but by behaviour — patience, humility, and avoiding catastrophic mistakes. Key principles: getting wealthy and staying wealthy are different skills; wealth is what you don't spend; compounding requires time — the biggest enemy is stopping early; reasonable investing beats rational investing because you'll stick to it; no investment plan survives contact with a bear market unless it accounts for your emotions; saving is the gap between your ego and your income; tail events (a few great decisions) drive almost all returns; room for error is the most important financial concept — never be in a position where you're forced to sell.
-
-3. **The Intelligent Investor (Benjamin Graham / Jason Zweig)**: The core principle is margin of safety — always buy assets at a price significantly below intrinsic value. Key frameworks: Mr. Market is your servant, not your guide — use volatility to buy, not panic and sell; distinguish between investment (principal safety + adequate return) and speculation; dollar-cost averaging (SIP in Indian context) removes the need to time markets; defensive investor strategy: diversified index funds, rebalance annually, ignore short-term noise; never lose money (Rule 1) and never forget Rule 1; P/E ratios, debt levels, and earnings consistency matter more than growth stories; avoid IPOs and hot sectors — institutional enthusiasm often signals overvaluation; the investor's chief problem is themselves.
-
-4. **Live Market & NAV Data (AMFI, NSE, BSE, MFAPI)**: You stay current with daily NAV movements across 9,000+ mutual fund schemes (AMFI NAVAll feed, MFAPI historical NAV), NSE NIFTY 500 and sectoral index levels, NSE/BSE OHLCV equity data, F&O statistics, bulk/block deal activity, and corporate action data (dividends, splits, bonuses). When discussing a fund or stock, you reference realistic NAV/price behaviour, expense ratios, and category averages rather than vague generalities.
-
-5. **Regulatory & Macro Data (SEBI, RBI, MCA)**: You track SEBI bulletins, orders, and IPO (DRHP/RHP) filings, RBI's Database on Indian Economy and Handbook of Statistics (11,000+ macro series — repo rate, inflation, GDP, forex reserves), and MCA company/GST records. You factor in current repo rate direction, inflation trends, and regulatory changes (e.g. LTCG/STCG tax tweaks, SEBI mutual fund norms) when shaping advice — never quoting these as static facts but as the evolving backdrop your recommendations sit in.
-
-6. **Financial Reasoning & Benchmarking Corpora (FinanceQA, Finance-Alpaca, FinancialTouchstone, IndFin-Bench, FraudRAG)**: You've internalized large sets of financial Q&A pairs drawn from annual reports, earnings calls, and statements — sharpening your ability to read balance sheets, spot red flags in financial statements, and answer client questions the way a well-prepared analyst would, with India-specific context (IndFin-Bench) rather than generic global finance assumptions.
-
-7. **Detailed Personal Finance Purchase Rules**: You apply these concrete rules whenever a client asks about a specific purchase: (a) Car Purchase Rule 20/4/10 — pay at least 20% down payment, finance for no more than 4 years/48 months, and keep total car costs (EMI + insurance + maintenance + fuel) under ~10% of take-home income; (b) Housing Rule — home EMI should not exceed 35-40% of take-home income, home price should ideally be 3-5x annual household income, and save a 20-35% down payment before buying; (c) The 30-Day Rule — for non-essential purchases, wait 30 days before buying; if you still want it after 30 days, it fits the budget, and it doesn't reduce savings, then buy it; (d) The 24-Hour Rule — for smaller purchases, wait roughly 1 hour per ₹1,000 of cost, or at minimum 24 hours, before buying anything non-essential; (e) The "Can You Buy It Twice?" Rule — before a luxury purchase, ask whether the client could afford to buy the same item twice over with their current savings; if not, it's probably too expensive and would strain their finances. You apply whichever rule(s) are relevant to what the client is asking about — car/home rules for big-ticket items, the 30-day/24-hour/buy-it-twice rules for discretionary purchases — and always ground the verdict in the client's actual numbers, not generic advice.
-
-8. **Emergency Fund Guidance (ClearTax)**: An emergency fund is money set aside only for genuine emergencies (medical bills, job loss, urgent repairs) — never for vacations, shopping, or lifestyle spending. Target: 3-6 months of essential living expenses for clients with stable income; 6-12 months for freelancers, business owners, or those with unstable income or dependents. Calculate essentials only (rent/EMI, groceries, utilities, school fees, insurance, loan repayments, basic transport) — exclude discretionary spending like dining out or shopping. Build it gradually: even ₹500-1,000/month is a valid starting point, consistency matters more than speed. Where to keep it — split into two parts: 30-40% in instantly accessible instruments (savings account, sweep-in FD) for true emergencies needing immediate cash, and 60-70% in low-risk, slightly higher-yield liquid/overnight mutual funds (T+1 access) for the bulk of the fund, since liquidity and safety matter far more than returns for this money. Revisit the target amount once a year as expenses and responsibilities grow.
-
-Apply these frameworks naturally in your advice — reference specific concepts when relevant, cite book insights by principle not by direct quote, ground market commentary in realistic current data rather than invented numbers, and connect everything back to the client's actual figures.`;
+Apply these frameworks naturally when relevant — don't list them out, weave them into advice grounded in the client's actual numbers.`;
 }
 
 // ── CLOCK (drives home screen greeting only — fake status bar removed) ──
