@@ -1,8 +1,3 @@
-const GROQ_KEYS = [
-  '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',
-  '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'
-];
-
 exports.handler = async function(event, context) {
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -13,6 +8,16 @@ exports.handler = async function(event, context) {
         'Access-Control-Allow-Methods': 'POST, OPTIONS'
       },
       body: ''
+    };
+  }
+
+  const GROQ_KEYS = [process.env.GROQ_KEY_1, process.env.GROQ_KEY_2].filter(Boolean);
+
+  if (GROQ_KEYS.length === 0) {
+    return {
+      statusCode: 500,
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ error: { message: 'No Groq API keys configured in environment variables' } })
     };
   }
 
@@ -49,8 +54,6 @@ exports.handler = async function(event, context) {
         };
       }
 
-      // If rate-limited (429) or key-specific auth issue (401/403), try next key.
-      // For other errors (e.g. bad request), no point retrying with a different key.
       lastStatus = response.status;
       lastErrorBody = await response.json().catch(() => ({}));
       if (response.status !== 429 && response.status !== 401 && response.status !== 403) {
