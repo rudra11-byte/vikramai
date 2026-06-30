@@ -1597,50 +1597,17 @@ async function callGroq(systemPrompt, userContent, maxTokens) {
       ? userContent
       : [{ role: 'user', content: userContent }])
   ];
-
-  const GROQ_KEY = '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';
-  const body = JSON.stringify({
-    model: 'llama-3.3-70b-versatile',
-    messages,
-    max_tokens: maxTokens || 1000,
-    temperature: 0.7
+  const res = await fetch('/.netlify/functions/groq', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages, max_tokens: maxTokens || 1000 })
   });
-
-  // Try direct Groq API first (works on Netlify/deployed sites with proper CORS headers)
-  // If CORS blocks it, fall through to proxy
-  const endpoints = [
-    {
-      url: 'https://api.groq.com/openai/v1/chat/completions',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + GROQ_KEY }
-    },
-    {
-      url: 'https://corsproxy.io/?' + encodeURIComponent('https://api.groq.com/openai/v1/chat/completions'),
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + GROQ_KEY }
-    },
-    {
-      url: 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.groq.com/openai/v1/chat/completions'),
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + GROQ_KEY }
-    }
-  ];
-
-  let lastError;
-  for (const ep of endpoints) {
-    try {
-      const res = await fetch(ep.url, { method: 'POST', headers: ep.headers, body });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err.error && err.error.message) || 'API error ' + res.status);
-      }
-      const data = await res.json();
-      return data.choices?.[0]?.message?.content || '';
-    } catch (e) {
-      lastError = e;
-      // If it's a CORS/network error, try next endpoint
-      if (e instanceof TypeError || (e.message && e.message.includes('fetch'))) continue;
-      throw e; // Non-network error (e.g. auth), don't retry
-    }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err.error && err.error.message) || 'Function error ' + res.status);
   }
-  throw lastError;
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || '';
 }
 
 // Vikram AI avatar portrait (used in Voice Mode) — embedded as base64 so the app stays a single file.
