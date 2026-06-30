@@ -11,7 +11,14 @@ exports.handler = async function(event, context) {
     };
   }
 
-  const GROQ_KEYS = [process.env.GROQ_KEY_1, process.env.GROQ_KEY_2].filter(Boolean);
+  const GROQ_KEYS = [
+    process.env.GROQ_KEY_1,
+    process.env.GROQ_KEY_2,
+    process.env.GROQ_KEY_3,
+    process.env.GROQ_KEY_4,
+    process.env.GROQ_KEY_5,
+    process.env.GROQ_KEY_6
+  ].filter(Boolean);
 
   if (GROQ_KEYS.length === 0) {
     return {
