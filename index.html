@@ -3537,7 +3537,8 @@ async function voiceSendAndSpeak(text) {
 
     if (voiceModeOpen) speakInVoiceMode(reply);
   } catch (e) {
-    if (voiceModeOpen) setVoiceStatus('Connection error. Please try again.', false);
+    console.error('Vikram voice error:', e);
+    if (voiceModeOpen) setVoiceStatus('Error: ' + (e.message || 'connection failed') + ' — tap mic to retry', false);
   }
 }
 
